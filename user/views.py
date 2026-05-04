@@ -58,3 +58,59 @@ class ProfileView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+    
+
+
+# Admin Dashboard Data
+class AdminDashboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # if not request.user.is_staff:
+        #     return Response({"error": "Unauthorized"}, status=403)
+
+        total_users = User.objects.count()
+        staff_users = User.objects.filter(is_staff=True).count()
+
+        all_users = User.objects.all()
+
+        response_data = {
+            "total_users": total_users,
+            "staff_users": staff_users,
+            "users": UserSerializer(all_users, many=True).data
+        }
+
+        return Response(response_data)
+    
+
+# Action perfom for user in admin dashboard
+class AdminUserActionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, user_id):
+        # if not request.user.is_staff:
+        #     return Response({"error": "Unauthorized"}, status=403)
+
+        action = request.data.get('action')
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+
+        if action == 'promote':
+            user.is_staff = True
+            user.save()
+            return Response({"message": f"{user.username} promoted to staff"})
+
+        elif action == 'demote':
+            user.is_staff = False
+            user.save()
+            return Response({"message": f"{user.username} demoted from staff"})
+
+        elif action == 'delete':
+            user.delete()
+            return Response({"message": f"{user.username} deleted"})
+
+        else:
+            return Response({"error": "Invalid action"}, status=400)
