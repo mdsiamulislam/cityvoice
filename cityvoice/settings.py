@@ -42,6 +42,7 @@ INSTALLED_APPS = [
 
     'user',
     'report',
+    'gamification',
 ]
 
 MIDDLEWARE = [
@@ -82,6 +83,13 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
+}
+
+# settings.py
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ]
 }
 
 
