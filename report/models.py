@@ -71,10 +71,14 @@ class Report(models.Model):
         return self.title
 
 class ReportImage(models.Model):
+    IMAGE_TYPE = (
+        ('before', 'Before'),   # citizen
+        ('after', 'After'),     # worker proof
+    )
+
     report = models.ForeignKey(Report, on_delete=models.CASCADE, related_name='images')
-    url = models.URLField(max_length=500)
-    caption = models.CharField(max_length=200, blank=True, null=True)
-    is_before = models.BooleanField(default=True)
+    url = models.URLField()
+    image_type = models.CharField(max_length=10, choices=IMAGE_TYPE)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
