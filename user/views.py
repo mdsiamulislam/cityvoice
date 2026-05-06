@@ -40,6 +40,17 @@ from .models import User
 from report.models import Report
 from report.serializers import CommentSerializer
 from report.models import Notification
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.db.models import Count
+
+from .models import NotificationPreference
+from report.models import Report, Vote
+from gamification.models import UserBadge
+from .serializers import UserProfileSerializer, UpdateProfileSerializer
+from .utils import get_civic_rank
+
 # 🔐 REGISTER
 
 class RegisterView(APIView):
@@ -92,6 +103,82 @@ class ProfileView(APIView):
         return Response(UserSerializer(request.user).data)
     
 
+class UserProfileDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+   
+        reports_count = Report.objects.filter(reporter=user).count()
+        verified_reports = Report.objects.filter(
+            reporter=user,
+            status='resolved'
+        ).count()
+
+        upvotes = Vote.objects.filter(user=user, vote_type='up').count()
+
+        
+        badge = UserBadge.objects.filter(user=user).first()
+        badge_name = badge.badge.name if badge else None
+
+        
+        pref, _ = NotificationPreference.objects.get_or_create(user=user)
+
+      
+        rank, percentile = get_civic_rank(user.reputation)
+
+        data = {
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "reputation": user.reputation,
+
+            "civic_rank": rank,
+            "civic_percentile": percentile,
+
+            "reports_count": reports_count,
+            "verified_reports": verified_reports,
+            "upvotes": upvotes,
+
+            "badge": badge_name,
+
+            "push_notifications": pref.push_all
+        }
+
+        return Response(data)
+    
+
+class UpdateProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        serializer = UpdateProfileSerializer(
+            request.user,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Profile updated"})
+
+        return Response(serializer.errors, status=400)
+    
+
+class ToggleNotificationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        pref, _ = NotificationPreference.objects.get_or_create(user=request.user)
+
+        pref.push_all = request.data.get('push_notifications', True)
+        pref.save()
+
+        return Response({
+            "message": "Updated",
+            "push_notifications": pref.push_all
+        })
 
 # Admin Dashboard Data
 class AdminDashboardView(APIView):

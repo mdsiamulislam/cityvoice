@@ -3,7 +3,7 @@ from .views import (RegisterView, LoginView, ProfileView,AdminDashboardView, Adm
                     DuplicateReportView,RecentActivityView,
                     AnalyticsView, AnalyticsCSVView, AnalyticsPDFView,UserDirectoryView, 
                     UserCSVExportView,AdminReportDetailView,AssignWorkerView,
-                    ReassignWorkerView,NotificationView,MapHeatmapView,RecentActivityCSVView)
+                    ReassignWorkerView,NotificationView,MapHeatmapView,RecentActivityCSVView,UserProfileDetailView,UpdateProfileView,ToggleNotificationView)
 from .views import NearbyReportView, ResolveReportView
 from .views import ReportImageViewSet
 from rest_framework.routers import DefaultRouter
@@ -33,5 +33,8 @@ urlpatterns = [
     path('notifications/', NotificationView.as_view()),
     path('admin/map-heat/', MapHeatmapView.as_view()),
     path('admin/recent-activity/csv/', RecentActivityCSVView.as_view()),
+    path('profile/detail/', UserProfileDetailView.as_view()),
+    path('profile/update/', UpdateProfileView.as_view()),
+    path('profile/notifications/', ToggleNotificationView.as_view()),
 ]
 urlpatterns += router.urls
