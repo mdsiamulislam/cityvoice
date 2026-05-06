@@ -1,56 +1,45 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
+
 from django.contrib.auth import authenticate
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
 from django.http import HttpResponse
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
-from .models import User
-from report.models import Report
-from django.db.models import Count
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from report.models import Report
-from django.utils import timezone
-from report.models import Assignment
-from rest_framework import viewsets
-from report.models import ReportImage
-from report.serializers import ReportImageSerializer
-from report.models import Flag
-from django.db import models
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from django.db.models import Count, Avg, F, ExpressionWrapper, DurationField, Q
+from django.utils import timezone
 from django.utils.dateparse import parse_date
-from datetime import timedelta
-from report.models import Report
+from django.db import models
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.paginator import Paginator
 import csv
+from datetime import timedelta
+
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
-from django.http import HttpResponse
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated,AllowAny
-from django.db.models import Count, Avg, Q
-from django.core.paginator import Paginator
-from .models import User
-from report.models import Report
-from report.serializers import CommentSerializer
-from report.models import Notification
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from django.db.models import Count
 
-from .models import NotificationPreference
-from report.models import Report, Vote
+from .models import User, NotificationPreference
+from .serializers import (
+    RegisterSerializer,
+    LoginSerializer,
+    UserSerializer,
+    UserProfileSerializer,
+    UpdateProfileSerializer
+)
+
+from report.models import (
+    Report,
+    Assignment,
+    ReportImage,
+    Flag,
+    Notification,
+    Vote
+)
+
+from report.serializers import ReportImageSerializer, CommentSerializer
+
 from gamification.models import UserBadge
-from .serializers import UserProfileSerializer, UpdateProfileSerializer
-from .utils import get_civic_rank
 
+from .utils import get_civic_rank
 # 🔐 REGISTER
 
 class RegisterView(APIView):
