@@ -85,8 +85,7 @@ class AdminDashboardView(APIView):
 
 # Action perfom for user in admin dashboard
 class AdminUserActionView(APIView):
-    permission_classes = [IsAuthenticated]
-
+    permission_classes = [IsAuthenticated] 
     def post(self, request, user_id):
         # if not request.user.is_staff:
         #     return Response({"error": "Unauthorized"}, status=403)
