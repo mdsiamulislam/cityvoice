@@ -48,14 +48,14 @@ class VoteSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['user']
 
-    def validate(self, data):
-        user = self.context['request'].user
-        report = data['report']
+    # def validate(self, data):
+    #     user = self.context['request'].user
+    #     report = data['report']
 
-        if Vote.objects.filter(user=user, report=report).exists():
-            raise serializers.ValidationError("Already voted")
+    #     if Vote.objects.filter(user=user, report=report).exists():
+    #         raise serializers.ValidationError("Already voted")
 
-        return data
+    #     return data
 
 
 # ───────────── FOLLOWER ─────────────
@@ -66,14 +66,14 @@ class FollowerSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['user']
 
-    def validate(self, data):
-        user = self.context['request'].user
-        report = data['report']
+    # def validate(self, data):
+    #     user = self.context['request'].user
+    #     report = data['report']
 
-        if Follower.objects.filter(user=user, report=report).exists():
-            raise serializers.ValidationError("Already following")
+    #     if Follower.objects.filter(user=user, report=report).exists():
+    #         raise serializers.ValidationError("Already following")
 
-        return data
+    #     return data
 
 
 # ───────────── REPORT ─────────────

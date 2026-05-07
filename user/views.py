@@ -13,7 +13,22 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.paginator import Paginator
 import csv
 from datetime import timedelta
+import random
+from datetime import timedelta
 
+from django.utils import timezone
+from google.oauth2 import id_token
+from google.auth.transport import requests
+
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from .serializers import GoogleLoginSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+
+from .models import User, OTPCode
+from .serializers import ForgotPasswordSerializer
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 
@@ -287,7 +302,30 @@ class ResolveReportView(APIView):
 
         return Response({"message": "Resolved successfully"})
     
+class WorkerStatsView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+
+        if request.user.role != 'worker':
+            return Response({
+                "error": "Only workers allowed"
+            }, status=403)
+
+        pending = Assignment.objects.filter(
+            worker=request.user,
+            status__in=['assigned', 'in_progress']
+        ).count()
+
+        completed = Assignment.objects.filter(
+            worker=request.user,
+            status='completed'
+        ).count()
+
+        return Response({
+            "pending": pending,
+            "completed": completed
+        })
 
 
 class ReportImageViewSet(viewsets.ModelViewSet):
@@ -838,3 +876,63 @@ class AdminReportDetailView(APIView):
         }
 
         return Response(data)
+    
+
+
+
+
+
+
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+
+        serializer = GoogleLoginSerializer(data=request.data)
+
+        if serializer.is_valid():
+
+            token = serializer.validated_data['id_token']
+
+            try:
+
+                info = id_token.verify_oauth2_token(
+                    token,
+                    requests.Request(),
+                    "YOUR_GOOGLE_CLIENT_ID"
+                )
+
+                email = info['email']
+                name = info.get('name')
+                google_id = info.get('sub')
+                photo = info.get('picture')
+
+                user, created = User.objects.get_or_create(
+                    email=email,
+                    defaults={
+                        'username': email.split('@')[0],
+                        'full_name': name,
+                        'google_id': google_id,
+                        'photo_url': photo
+                    }
+                )
+
+                refresh = RefreshToken.for_user(user)
+
+                return Response({
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                    "user": {
+                        "id": user.id,
+                        "username": user.username,
+                        "email": user.email,
+                        "photo_url": user.photo_url
+                    }
+                })
+
+            except Exception:
+                return Response({
+                    "error": "Invalid Google token"
+                }, status=400)
+
+        return Response(serializer.errors, status=400)

@@ -17,5 +17,6 @@ urlpatterns = [
     path('api/reports/<int:report_id>/timeline/', ReportTimelineView.as_view()),
     path('api/flag/', FlagReportView.as_view()),
     path('api/all-reports/', AllReportView.as_view()),
-    path('api/reports/<int:pk>/cancel/', CancelReportView.as_view())
+    path('api/reports/<int:pk>/cancel/', CancelReportView.as_view()),
+    
 ]

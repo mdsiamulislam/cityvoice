@@ -8,8 +8,8 @@ from rest_framework import response
 from rest_framework import status
 from rest_framework.views import APIView
 from django.db import models
-
-
+from django.utils import timezone
+from report.models import Assignment
 class ZoneViewSet(viewsets.ModelViewSet):
     queryset = Zone.objects.all()
     serializer_class = ZoneSerializer
@@ -35,23 +35,23 @@ class ReportViewSet(viewsets.ModelViewSet):
 
     
         return Report.objects.all().order_by('-created_at')
-    def get_queryset(self):
-        queryset = Report.objects.all()
+    # def get_queryset(self):
+    #     queryset = Report.objects.all()
 
-        search = self.request.query_params.get('search')
-        status = self.request.query_params.get('status')
-        category = self.request.query_params.get('category')
+    #     search = self.request.query_params.get('search')
+    #     status = self.request.query_params.get('status')
+    #     category = self.request.query_params.get('category')
 
-        if search:
-            queryset = queryset.filter(title__icontains=search)
+    #     if search:
+    #         queryset = queryset.filter(title__icontains=search)
 
-        if status:
-            queryset = queryset.filter(status=status)
+    #     if status:
+    #         queryset = queryset.filter(status=status)
 
-        if category:
-            queryset = queryset.filter(category__id=category)
+    #     if category:
+    #         queryset = queryset.filter(category__id=category)
 
-        return queryset.order_by('-created_at')
+    #     return queryset.order_by('-created_at')
     def perform_create(self, serializer):
         serializer.save(reporter=self.request.user)
 
@@ -82,22 +82,135 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    def get_queryset(self):
+        queryset = Comment.objects.filter(
+            deleted_at__isnull=True
+        )
+
+        report_id = self.request.query_params.get('report')
+
+        if report_id:
+            queryset = queryset.filter(report_id=report_id)
+
+        return queryset.order_by('-created_at')
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-        
+
+    def destroy(self, request, *args, **kwargs):
+
+        comment = self.get_object()
+
+        # ownership check
+        if comment.user != request.user:
+            return Response({
+                "error": "Permission denied"
+            }, status=403)
+
+        comment.deleted_at = timezone.now()
+
+        comment.save()
+
+        return Response({
+            "message": "Comment deleted"
+        })
 
 class VoteViewSet(viewsets.ModelViewSet):
     queryset = Vote.objects.all()
     serializer_class = VoteSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    def get_queryset(self):
+        return Vote.objects.all()
+
+    def create(self, request, *args, **kwargs):
+
+        report_id = request.data.get('report')
+        vote_type = request.data.get('vote_type')
+
+        try:
+            report = Report.objects.get(id=report_id)
+
+        except Report.DoesNotExist:
+            return Response({
+                "error": "Report not found"
+            }, status=404)
+
+        vote = Vote.objects.filter(
+            user=request.user,
+            report=report
+        ).first()
+
+        # remove same vote
+        if vote and vote.vote_type == vote_type:
+
+            if vote.vote_type == 'up':
+                report.upvote_count -= 1
+
+            else:
+                report.downvote_count -= 1
+
+            report.save()
+
+            vote.delete()
+
+            return Response({
+                "message": "Vote removed"
+            })
+
+        # update existing vote
+        if vote:
+
+            # old remove
+            if vote.vote_type == 'up':
+                report.upvote_count -= 1
+
+            else:
+                report.downvote_count -= 1
+
+            # new add
+            if vote_type == 'up':
+                report.upvote_count += 1
+
+            else:
+                report.downvote_count += 1
+
+            vote.vote_type = vote_type
+            vote.save()
+
+            report.save()
+
+            return Response({
+                "message": "Vote updated"
+            })
+
+        # create new vote
+        serializer = self.get_serializer(data=request.data)
+
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save(user=request.user)
+
+        if vote_type == 'up':
+            report.upvote_count += 1
+
+        else:
+            report.downvote_count += 1
+
+        report.save()
+
+        return Response(serializer.data)
+
+
 
 
 class FollowerViewSet(viewsets.ModelViewSet):
     queryset = Follower.objects.all()
     serializer_class = FollowerSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 
@@ -146,6 +259,7 @@ class ReportTimelineView(APIView):
 
 
 class FlagReportView(APIView):
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         Flag.objects.create(
             reporter=request.user,
@@ -169,7 +283,8 @@ class CancelReportView(APIView):
         if report.status in ['resolved']:
             return Response({"error": "Cannot cancel resolved report"}, status=400)
 
-        report.status = 'rejected'
+        report.status = 'cancelled'
         report.save()
 
         return Response({"message": "Report cancelled"})
+
