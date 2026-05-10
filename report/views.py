@@ -55,6 +55,27 @@ class ReportViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(reporter=self.request.user)
 
+class AllReportDetailView(viewsets.ReadOnlyModelViewSet):
+    """
+    Eita shudhu 'list' (shob gula) ebong 'retrieve' (specific ekta) 
+    report dekhar jonno use kora hobe.
+    """
+    queryset = Report.objects.all()
+    serializer_class = ReportSerializer
+    permission_classes = [IsAuthenticated]
+
+    # Jodi apni specific kono customization korte chan (optional):
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset().order_by('-created_at')  # Latest report age dekhabeclear
+        serializer = self.get_serializer(queryset, many=True)
+        # Custom logic ekhane likha jay
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        # Custom logic ekhane likha jay
+        return Response(serializer.data)
 
 
 class AllReportView(APIView):

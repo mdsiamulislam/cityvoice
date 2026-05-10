@@ -26,7 +26,18 @@ SECRET_KEY = 'django-insecure-=+haege9k=mcivc6&o+s89oq=b)q)u(hssu=@!smrf7jmxpdi1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['pedigreed-corine-gratefully.ngrok-free.dev', 'localhost', '127.0.0.1']
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://pedigreed-corine-gratefully.ngrok-free.dev",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "https://pedigreed-corine-gratefully.ngrok-free.dev",
+]
+
 AUTH_USER_MODEL  = 'user.User'
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
