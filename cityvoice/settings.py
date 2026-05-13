@@ -28,6 +28,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['pedigreed-corine-gratefully.ngrok-free.dev', 'localhost', '127.0.0.1']
 
+CORS_ALLOW_ALL_ORIGINS = True
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://pedigreed-corine-gratefully.ngrok-free.dev"
@@ -36,6 +40,27 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "https://pedigreed-corine-gratefully.ngrok-free.dev"
+]
+
+APPEND_SLASH = False
+
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "ngrok-skip-browser-warning", # এই হেডারটি এখানেও পারমিশন দিয়ে দিন
 ]
 
 AUTH_USER_MODEL  = 'user.User'
@@ -55,6 +80,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'django_filters',
 
     'user',
     'report',

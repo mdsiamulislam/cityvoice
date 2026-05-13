@@ -243,14 +243,12 @@ class AdminUserActionView(APIView):
         
 
 
-
-
 class NearbyReportView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        if request.user.role != 'worker':
-            return Response({"error": "Only workers allowed"}, status=403)
+        if not request.user.is_staff:
+            return Response({"error": "Staff access required"}, status=403)
 
         assignments = Assignment.objects.filter(
             worker=request.user,
@@ -262,6 +260,7 @@ class NearbyReportView(APIView):
             r = a.report
             data.append({
                 "report_id": r.id,
+                "zone": r.zone.name if r.zone else None,
                 "title": r.title,
                 "description": r.description,
                 "address": r.address,
@@ -309,7 +308,7 @@ class WorkerStatsView(APIView):
 
     def get(self, request):
 
-        if request.user.role != 'worker':
+        if not request.user.is_staff:
             return Response({
                 "error": "Only workers allowed"
             }, status=403)
@@ -416,6 +415,8 @@ class RecentActivityView(APIView):
 
         return Response(data)
     
+from django.db import transaction
+
 class AssignWorkerView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -423,45 +424,49 @@ class AssignWorkerView(APIView):
         report_id = request.data.get('report_id')
         worker_id = request.data.get('worker_id')
 
-       
         if not report_id or not worker_id:
             return Response({"error": "report_id and worker_id required"}, status=400)
 
         try:
-            report = Report.objects.get(id=report_id)
+            with transaction.atomic():  # 👈 Transaction start
+                # Report fetch
+                report = Report.objects.select_for_update().get(id=report_id)
+                
+                # Worker fetch
+                worker = User.objects.get(id=worker_id, is_staff=True)
+
+                # Check if already assigned
+                if Assignment.objects.filter(report=report).exists():
+                    return Response({"error": "Already assigned"}, status=400)
+
+                # Create Assignment
+                assignment = Assignment.objects.create(
+                    report=report,
+                    worker=worker,
+                    assigned_by=request.user,
+                    status='assigned'
+                )
+
+                # 🔥 Update Report Status
+                report.status = 'in_progress'
+                report.save()
+
+                return Response({
+                    "message": "Assigned successfully",
+                    "assignment": {
+                        "report": report.id,
+                        "worker": worker.username,
+                        "status": assignment.status,
+                        "report_status": report.status # Test korar jonno response-e check korun
+                    }
+                })
+
         except Report.DoesNotExist:
             return Response({"error": "Report not found"}, status=404)
-
-  
-        try:
-            worker = User.objects.get(id=worker_id, role='worker')
         except User.DoesNotExist:
             return Response({"error": "Worker not found"}, status=404)
-
-
-        if Assignment.objects.filter(report=report).exists():
-            return Response({"error": "Already assigned"}, status=400)
-
-      
-        assignment = Assignment.objects.create(
-            report=report,
-            worker=worker,
-            assigned_by=request.user,
-            status='assigned'
-        )
-
-        # 🔥 update report status
-        report.status = 'in_progress'
-        report.save()
-
-        return Response({
-            "message": "Assigned successfully",
-            "assignment": {
-                "report": report.id,
-                "worker": worker.username,
-                "status": assignment.status
-            }
-        })
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
 class ReassignWorkerView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -475,7 +480,7 @@ class ReassignWorkerView(APIView):
             return Response({"error": "Assignment not found"}, status=404)
 
         try:
-            worker = User.objects.get(id=worker_id, role='worker')
+            worker = User.objects.get(id=worker_id, is_staff=True)
         except User.DoesNotExist:
             return Response({"error": "Worker not found"}, status=404)
 

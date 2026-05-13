@@ -309,3 +309,49 @@ class CancelReportView(APIView):
 
         return Response({"message": "Report cancelled"})
 
+
+class UpdateReportStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        new_status = request.data.get('status')
+        note = request.data.get('note', '')
+
+        # 1. Check if status is provided
+        if not new_status:
+            return Response({"error": "Status is required"}, status=400)
+
+        try:
+            report = Report.objects.get(id=pk)
+        except Report.DoesNotExist:
+            return Response({"error": "Report not found"}, status=404)
+
+        # 2. Status Choices validation (Apnar deya choices-er sathe mil rekhe)
+        # Amra hardcode na kore model thekeo nite pari: [c[0] for c in Report.STATUS_CHOICES]
+        valid_statuses = [
+            'pending', 'under_review', 'in_progress', 
+            'resolved', 'rejected', 'duplicate'
+        ]
+
+        if new_status not in valid_statuses:
+            return Response({
+                "error": f"Invalid status. Choose from: {', '.join(valid_statuses)}"
+            }, status=400)
+
+        # 3. Create a timeline entry (ReportUpdate)
+        # User keo track kora bhalo (jodi model-e user field thake)
+        ReportUpdate.objects.create(
+            report=report,
+            new_status=new_status,
+            body=note
+        )
+
+        # 4. Update the report status and save
+        report.status = new_status
+        report.save()
+
+        return Response({
+            "status": "success",
+            "message": f"Report status updated to {new_status}",
+            "current_status": report.status
+        })

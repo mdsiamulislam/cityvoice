@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ZoneViewSet , CategoryViewSet, ReportViewSet, CommentViewSet, VoteViewSet, FollowerViewSet, AdminReportView,ReportTimelineView,FlagReportView,AllReportView, AllReportDetailView, CancelReportView
+from .views import ZoneViewSet , CategoryViewSet, ReportViewSet, CommentViewSet, VoteViewSet, FollowerViewSet, AdminReportView,ReportTimelineView,FlagReportView,AllReportView, UpdateReportStatusView, AllReportDetailView, CancelReportView
 from user.views import ReportImageViewSet
 router = DefaultRouter()
 router.register('zones', ZoneViewSet)
@@ -19,5 +19,5 @@ urlpatterns = [
     path('api/flag/', FlagReportView.as_view()),
     path('api/all-reports/', AllReportView.as_view()),
     path('api/reports/<int:pk>/cancel/', CancelReportView.as_view()),
-    
+    path('api/reports/<int:pk>/update-status/', UpdateReportStatusView.as_view()),
 ]
