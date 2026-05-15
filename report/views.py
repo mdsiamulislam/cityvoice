@@ -10,6 +10,27 @@ from rest_framework.views import APIView
 from django.db import models
 from django.utils import timezone
 from report.models import Assignment
+
+from user.models import FCMToken
+
+from report.utils.massage_notification import send_notification
+
+
+from math import radians, cos, sin, asin, sqrt
+
+
+def haversine(lat1, lon1, lat2, lon2):
+    # দশমিক থেকে রেডিয়ানে রূপান্তর
+    lat1, lon1, lat2, lon2 = map(radians, [float(lat1), float(lon1), float(lat2), float(lon2)])
+    
+    # Haversine সূত্র
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a)) 
+    r = 6371 # পৃথিবীর ব্যাসার্ধ (কিলোমিটারে)
+    return c * r
+
 class ZoneViewSet(viewsets.ModelViewSet):
     queryset = Zone.objects.all()
     serializer_class = ZoneSerializer
@@ -53,7 +74,36 @@ class ReportViewSet(viewsets.ModelViewSet):
 
     #     return queryset.order_by('-created_at')
     def perform_create(self, serializer):
-        serializer.save(reporter=self.request.user)
+        # ১. বর্তমান রিপোর্টটি সেভ করা
+        new_report = serializer.save(reporter=self.request.user)
+        
+        # ২. বর্তমান রিপোর্টের লোকেশন নেওয়া
+        current_lat = new_report.latitude
+        current_lon = new_report.longitude
+
+        # ৩. আগের রিপোর্টগুলো থেকে লোকেশন চেক করা (একই রিপোর্টারকে বাদ দিয়ে)
+        # ডাটাবেস থেকে সব রিপোর্ট না এনে শুধু লোকেশন ফিল্ডগুলো আনা ভালো পারফরম্যান্সের জন্য
+        nearby_reports = Report.objects.exclude(reporter=self.request.user)
+
+        notified_users = set() # যাতে একই ইউজারকে বারবার নোটিফিকেশন না যায়
+
+        for report in nearby_reports:
+            distance = haversine(current_lat, current_lon, report.latitude, report.longitude)
+            
+            if distance <= 1.0: # ১ কিমি এর মধ্যে হলে
+                notified_users.add(report.reporter)
+
+        self.send_notifications_to_users(list(notified_users), new_report)
+
+    def send_notifications_to_users(self, users, new_report):
+        tokens = FCMToken.objects.filter(user__in=users).values_list('token', flat=True)
+        if tokens:
+            print(f"Sending notification to {len(tokens)} devices about report: {new_report.title}")
+            for token in tokens:
+                send_notification(token, new_report.title, new_report.description)
+
+
+
 
 class AllReportDetailView(viewsets.ReadOnlyModelViewSet):
     """
