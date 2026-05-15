@@ -62,3 +62,7 @@ class NotificationPreference(models.Model):
     email_weekly = models.BooleanField(default=True)
     email_status = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+class FCMToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fcm_tokens')
+    token = models.CharField(max_length=300)

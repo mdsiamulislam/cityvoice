@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (RegisterView, LoginView, ProfileView,AdminDashboardView, AdminUserActionView,ModerationView,ModerationActionView,
+from .views import (RegisterView, LoginView, ProfileView,AdminDashboardView, AdminUserActionView,ModerationView,ModerationActionView, FCMTokenViewSet,
                     DuplicateReportView,RecentActivityView,
                     AnalyticsView, AnalyticsCSVView, AnalyticsPDFView,UserDirectoryView, 
                     UserCSVExportView,AdminReportDetailView,AssignWorkerView,
@@ -12,6 +12,7 @@ router = DefaultRouter()
 router.register('report-images', ReportImageViewSet)
 urlpatterns = [
     path('register/', RegisterView.as_view()),
+    path('fcm-tokens/', FCMTokenViewSet.as_view({'post': 'create', 'get': 'list'})),
     path('login/', LoginView.as_view()),
     path('profile/', ProfileView.as_view()),
     path('worker/nearby/', NearbyReportView.as_view()),

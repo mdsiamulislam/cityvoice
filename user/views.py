@@ -32,13 +32,14 @@ from .serializers import ForgotPasswordSerializer
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 
-from .models import User, NotificationPreference
+from .models import User, NotificationPreference, FCMToken
 from .serializers import (
     RegisterSerializer,
     LoginSerializer,
     UserSerializer,
     UserProfileSerializer,
-    UpdateProfileSerializer
+    UpdateProfileSerializer,
+    FCMTokenSerializer
 )
 
 from report.models import (
@@ -57,6 +58,17 @@ from gamification.models import UserBadge
 from .utils import get_civic_rank
 # 🔐 REGISTER
 
+
+
+# views.py
+class FCMTokenViewSet(viewsets.ModelViewSet):
+    queryset = FCMToken.objects.all()
+    serializer_class = FCMTokenSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # সিরিয়ালাইজার সেভ করার সময় অটোমেটিক রিকোয়েস্ট ইউজার সেট করে দেবে
+        serializer.save(user=self.request.user)
 class RegisterView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):

@@ -1,10 +1,21 @@
 from rest_framework import serializers
 from .models import User
 from rest_framework import serializers
-from .models import User, NotificationPreference
+from .models import User, NotificationPreference, FCMToken
 from report.models import Report, Vote
 from gamification.models import UserBadge
 from django.contrib.auth.password_validation import validate_password
+
+
+
+class FCMTokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FCMToken
+        fields = '__all__'
+        # ইউজার ফিল্ডকে read_only করে দিন যাতে ইনপুটে এটি না খোঁজে
+        extra_kwargs = {
+            'user': {'read_only': True}
+        }
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
