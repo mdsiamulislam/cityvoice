@@ -88,3 +88,9 @@ class LogoutSerializer(serializers.Serializer):
 
 class GoogleLoginSerializer(serializers.Serializer):
     id_token = serializers.CharField()
+
+
+class UserPublicProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'full_name', 'civic_rank', 'reputation', 'photo_url']

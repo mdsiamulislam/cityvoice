@@ -343,7 +343,7 @@ class UpdateReportStatusView(APIView):
         ReportUpdate.objects.create(
             report=report,
             new_status=new_status,
-            body=note
+            cd=note
         )
 
         # 4. Update the report status and save
